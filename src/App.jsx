@@ -33,15 +33,6 @@ const RV = {
   vent:{bg:"linear-gradient(180deg,#0a080a 0%,#120e12 40%,#060406 100%)",dec:["🕳️","═══","═══","═══","🕳️"],atm:["Wind howling through.","Metal scraping.","Something crawling.","Leads to VENT →"]}
 };
 
-const MP = {
-  stage:{x:185,y:3,w:190,h:38},storage:{x:8,y:58,w:125,h:34},backstage:{x:218,y:58,w:125,h:34},
-  break_room:{x:428,y:58,w:125,h:34},dining:{x:8,y:114,w:125,h:34},archive:{x:218,y:114,w:125,h:34},
-  server_room:{x:428,y:114,w:125,h:34},kitchen:{x:8,y:172,w:125,h:34},east_hall:{x:428,y:232,w:125,h:34},
-  west_hall:{x:8,y:232,w:125,h:34},office:{x:168,y:226,w:224,h:50},
-  maintenance:{x:218,y:300,w:125,h:32},vent:{x:233,y:348,w:96,h:30}
-};
-const CN = [["stage","storage"],["stage","backstage"],["stage","break_room"],["storage","dining"],["backstage","archive"],["break_room","server_room"],["dining","kitchen"],["archive","server_room"],["archive","dining"],["server_room","east_hall"],["kitchen","west_hall"],["west_hall","office"],["east_hall","office"],["office","maintenance"],["maintenance","vent"],["vent","office"]];
-
 /* ═══ ANIMATRONICS ═══ */
 const AD = [
   {id:"goldie",n:"GOLDIE",e:"🥇",s:"stage",dr:"L",p:["stage","storage","dining","kitchen","west_hall"],ni:1,d:"Slow. Freezes when watched. SILENT.",silent:true},
@@ -64,7 +55,7 @@ const DF = n => {
     brs:Math.max(5,26-d*.7), fs:Math.max(6,30-d*.8), fw:Math.max(1.2,3.5-d*.12),
     ms:Math.max(6,22-d*.35), aw:Math.max(2,5-d*.18),
     bd:0.025+d*.0008, cd:0.07+d*.002, td:0.10+d*.005,
-    er:Math.max(8,32-d), hc:Math.min(.25,d*.015),
+    er:Math.max(12,36-d), hc:Math.min(.25,d*.015),
     pr:Math.max(12,40-d*1.5), ar:Math.max(20,35-d), awn:Math.max(6,10-d*.25)
   };
 };
@@ -132,7 +123,6 @@ export default function App() {
   const [camOn, setCamOn] = useState(false);
   const [sel, setSel] = useState(null);
   const [camJ, setCamJ] = useState(false);
-  const [camSt, setCamSt] = useState(false);
   const [anims, setAnims] = useState([]);
   const [mb, setMb] = useState(100);
   const [atD, setAtD] = useState({L:null,R:null,V:null});
@@ -168,8 +158,6 @@ export default function App() {
   const [windTimer, setWindTimer] = useState(0);
   const [showTut, setShowTut] = useState(false);
   const [camTrans, setCamTrans] = useState(false);
-  const [showMap, setShowMap] = useState(false);
-  const [doorKnock, setDoorKnock] = useState({L:0,R:0,V:0});
 
   const nR = useRef(1); const pR = useRef(0); const hR = useRef(0); const poR = useRef(false);
   const drf = useRef({L:false,R:false,V:false}); const scR = useRef(false); const bsR = useRef(false);
@@ -180,6 +168,7 @@ export default function App() {
   const auR = useRef({d:null,t:0}); const mEvtR = useRef(null);
   const nBlk = useRef(0); const nCam = useRef(0); const nUCam = useRef(false); const nULt = useRef(false);
   const dlRef = useRef(0); const corrR = useRef(0);
+  const evCd = useRef(0);
   const lLR = useRef(false); const lRR = useRef(false);
   const camTrR = useRef(false);
 
@@ -196,7 +185,10 @@ export default function App() {
   const fire = useCallback((m, t = "info", d) => { setToast({m, t, id: Date.now()}); setTimeout(() => setToast(null), d || 3e3); }, []);
   const sv = useCallback(async (c, u, s, a, b) => { await ST.s("fnag7", {coins: c ?? coins, upg: u ?? upg, stats: s ?? stats, achv: a ?? achv, best: b ?? best, kills, wins}); }, [coins, upg, stats, achv, best, kills, wins]);
 
-  const closeCam = useCallback((e) => { if (e) e.stopPropagation(); sSt(); setCamOn(false); setSel(null); setShowMap(false); }, []);
+  const evCdSet = useCallback(() => { evCd.current = 10; evR.current = Math.max(evR.current, 6); }, []);
+  const wasBusy = useRef(false);
+  useEffect(() => { const busy = !!(math || chal); if (wasBusy.current && !busy) evCdSet(); wasBusy.current = busy; }, [math, chal, evCdSet]);
+  const closeCam = useCallback((e) => { if (e) e.stopPropagation(); sSt(); setCamOn(false); setSel(null); }, []);
 
   useEffect(() => { (async () => { const s = await ST.g("fnag7"); if (s) { if (s.coins != null) setCoins(s.coins); if (s.upg) setUpg(s.upg); if (s.stats) setStats(s.stats); if (s.achv) setAchv(s.achv); if (s.best) setBest(s.best); if (s.kills) setKills(s.kills); if (s.wins) setWins(s.wins); } })(); }, []);
   useEffect(() => { try { Tone.getDestination().mute = muted; } catch {} }, [muted]);
@@ -293,7 +285,6 @@ export default function App() {
     nBlk.current = 0; nCam.current = 0; nUCam.current = false; nULt.current = false;
     setShadowOn(false); setWindCd(false); setWindTimer(0);
     lLR.current = false; lRR.current = false; setLCdL(false); setLCdR(false);
-    setDoorKnock({L:0,R:0,V:0});
     if (n <= PHONE.length) { setPhoneShow(true); setTimeout(() => setPhoneShow(false), 8e3); }
   }, [upg, mode, cLvl]);
 
@@ -379,11 +370,10 @@ export default function App() {
         if (!p) return null;
         if (p.type === "memory" && p.phase === "watch") { if (p.show < p.seq.length) return {...p, show: p.show + 1}; return {...p, phase: "input"}; }
         if (p.type === "freeze" && p.timer <= 1 && !p.failed) { fire("\uD83E\uDD76 +3%", "success"); baR.current = Math.min(getUpg().maxBatt, baR.current + 3); setBatt(baR.current); return null; }
-        if (p.type === "memory" && p.phase === "watch") return p;
         if (p.timer <= 1) { ct = p.type; return null; }
         return {...p, timer: p.timer - 1};
       });
-      if (ct) { const ms = {wind:"\uD83C\uDFB5",click:"\u23F1\uFE0F",type:"\u2328\uFE0F",wire:"\uD83D\uDCA5",freeze:"\uD83E\uDEE0",memory:"\uD83E\uDDE0",reboot:"\uD83D\uDCE1"}; doScare({t:"emoji",e:ms[ct]||"\uD83D\uDC80",msg:"FAIL",c:"#f0f",sc:5}); baR.current = Math.max(0, baR.current - 12); setBatt(baR.current); if (ct === "reboot") setCamJ(false); }
+      if (ct) { const ms = {wind:"\uD83C\uDFB5",click:"\u23F1\uFE0F",type:"\u2328\uFE0F",wire:"\uD83D\uDCA5",freeze:"\uD83E\uDEE0",memory:"\uD83E\uDDE0",reboot:"\uD83D\uDCE1"}; doScare({t:"emoji",e:ms[ct]||"\uD83D\uDC80",msg:"FAIL",c:"#f0f",sc:5}); baR.current = Math.max(0, baR.current - 12); setBatt(baR.current); if (ct === "reboot") setCamJ(false); evCd.current = 8; }
     }, 1e3);
     return () => clearInterval(i);
   }, [scr, fire, doScare]);
@@ -405,7 +395,7 @@ export default function App() {
       setBatt(Math.max(0, baR.current));
       const mMul = (mEvtA && mEvtA.t === "musicDrain") ? 2 : 1;
       if (!poR.current) { mbR.current -= df.td * u.musicMul * mMul; setMb(Math.max(0, mbR.current)); }
-      if (!mEvtA && Math.random() < .008 + n * .002 && hR.current >= 1) {
+      if (!mEvtA && !bsR.current && Math.random() < .008 + n * .002 && hR.current >= 1) {
         const ev = R(MEV);
         if (ev.t === "freeBatt") { baR.current = cl(baR.current + 15, 0, u.maxBatt); setBatt(baR.current); fire("\uD83D\uDCB5 +15%", "success"); }
         else if (ev.t === "forceDoor") { const s = R(["L","R"]); if (s === "L") setDL(false); else setDR(false); setMEvt({...ev, timer: ev.dur, side: s}); fire("\uD83D\uDCC9 CRASH!", "error", 4e3); }
@@ -415,13 +405,11 @@ export default function App() {
       }
       if (mEvtA && mEvtA.timer > 0) { const ne = {...mEvtA, timer: mEvtA.timer - 1}; if (ne.timer <= 0) { if (ne.t === "camDown") setCamJ(false); setMEvt(null); } else setMEvt(ne); }
       const aN = [...anR.current]; let dU = {...adR.current};
-      const dk = {L:0,R:0,V:0};
       aN.forEach(a => {
         if (!a.active || a.room === "attacking") return;
         if (a.atDoor > 0) {
           a.atDoor -= 1;
           const side = a.dr || (a._side || "L");
-          dk[side] = Math.max(dk[side], a.atDoor + 1);
           if (!a.silent && a.atDoor > 0 && a.atDoor % 2 === 0) sKnock();
           if (a.atDoor <= 0) {
             sBang();
@@ -453,13 +441,11 @@ export default function App() {
           const idx = path.indexOf(a.room);
           if (idx < path.length - 2) { a.room = path[idx + 1]; a.cooldown = Math.round(a.moveSpd + Math.random() * 3); mk("sine","G1",-20,.06); }
           else if (idx < path.length - 1) { a.room = path[idx + 1]; const aw = a.id === "fed" ? df.fw : df.aw; a.atDoor = aw; dU[a.dr] = a.id; if (!a.silent) sBr(); mk("sine","G1",-20,.06); }
-          else { const aw = a.id === "fed" ? df.fw : df.aw; a.atDoor = aw; dU[a.dr] = a.id; if (!a.silent) sBr(); }
+          else { a.cooldown = Math.round(a.moveSpd); }
         }
-        if (Math.random() < .3) { setCamSt(true); setTimeout(() => setCamSt(false), 200); }
       });
       aN.forEach(a => { if ((a.id === "bear" || a.id === "margin") && a.room === a.s && a._cp) { a._cp = null; a._pi = 0; } });
       anR.current = aN; setAnims([...aN]); adR.current = dU; setAtD({...dU});
-      setDoorKnock({...dk});
       if (n >= 2) { phRef.current--; if (phRef.current <= 0) { phRef.current = Math.round(df.pr + Math.random() * 10); if (caR.current && slR.current && Math.random() < .35) { setPhCam(slR.current); setPhT(3); } } }
       if (n >= 4) {
         const ar = auR.current;
@@ -468,8 +454,8 @@ export default function App() {
           if (Math.random() < .7) { const hr = ar.d === "L" ? "west_hall" : "east_hall"; setHal(p => ({...p, [hr]: "\uD83D\uDCE1"})); setTimeout(() => setHal(p => { const n2 = {...p}; if (n2[hr] === "\uD83D\uDCE1") delete n2[hr]; return n2; }), 1500); }
           if (ar.t % 2 === 0) sAud();
           const litL2 = lLR.current && ar.d === "L"; const litR2 = lRR.current && ar.d === "R";
-          if (litL2 || litR2) { nBlk.current++; fire("\uD83D\uDC41\uFE0F Retreated!", "success", 2e3); auR.current = {d:null,t:0}; setAuD(null); return; }
-          if (ar.t <= 0) {
+          if (litL2 || litR2) { nBlk.current++; fire("\uD83D\uDC41\uFE0F Retreated!", "success", 2e3); auR.current = {d:null,t:0}; setAuD(null); }
+          else if (ar.t <= 0) {
             const bl = (ar.d === "L" && drf.current.L) || (ar.d === "R" && drf.current.R);
             if (!bl) { die("auditor"); return; } else { nBlk.current++; fire("\uD83D\uDEAA Blocked!", "success"); }
             auR.current = {d:null,t:0}; setAuD(null);
@@ -491,17 +477,18 @@ export default function App() {
         } else setShadowOn(false);
       }
       if (Math.random() < df.hc) { const rc = R(CI); setHal(p => ({...p, [rc]: R(["\uD83D\uDC7B","\uD83E\uDD47","\uD83D\uDCC8","\uD83D\uDCC9","\uD83D\uDC41\uFE0F"])})); setTimeout(() => setHal(p => { const n2 = {...p}; delete n2[rc]; return n2; }), 3e3); }
-      if (!camJ && Math.random() < .005 + n * .001) { setCamJ(true); setTimeout(() => setCamJ(false), 1500 + n * 150); }
+      if (!camJ && !bsR.current && Math.random() < .004 + n * .0008) { setCamJ(true); setTimeout(() => setCamJ(false), 1200 + Math.min(n * 80, 2400)); }
       evR.current--;
-      if (evR.current <= 0 && !bsR.current) { evR.current = Math.round(df.er + Math.random() * df.er * .3); spawnEvt(); }
-      const r = Math.random(); const base = Math.max(.08, n >= 7 ? n * .04 : n * .025);
+      if (evCd.current > 0) evCd.current--;
+      if (evR.current <= 0 && !bsR.current && evCd.current <= 0) { evR.current = Math.round(df.er + Math.random() * df.er * .4); evCd.current = 0; spawnEvt(); }
+      const r = Math.random(); const base = bsR.current ? Math.max(.02, n >= 7 ? n * .01 : n * .006) : Math.max(.08, n >= 7 ? n * .04 : n * .025);
       if (r < base * .12) { setGli(true); sG(); setTimeout(() => setGli(false), 300); }
       else if (r < base * .2) { setTGl(true); setTimeout(() => setTGl(false), 250); }
       else if (r < base * .35) fire(R(CREEPY), "error", 3500);
       else if (r < base * .44) { setShk(true); setTimeout(() => setShk(false), 400 + n * 80); }
       else if (r < base * .48 && n >= 2) { setInv(true); setTimeout(() => setInv(false), 150); }
       else if (r < base * .52 && n >= 2) sH();
-      else if (r < base * .56 && n >= 3 && !crR.current) { crR.current = true; sE(); setCrash({pct:0,msg:R(["FATAL: camera_corrupted","kernel panic: DOOR_FAIL","ERR: battery_anomaly"])}); const ci = setInterval(() => setCrash(p => { if (!p || p.pct >= 100) { clearInterval(ci); crR.current = false; return null; } return {...p, pct: p.pct + Math.floor(Math.random() * 18) + 5}; }), 350); setTimeout(() => { clearInterval(ci); setCrash(null); crR.current = false; }, 4500); }
+      else if (r < base * .56 && n >= 3 && !crR.current && !bsR.current) { crR.current = true; sE(); setCrash({pct:0,msg:R(["FATAL: camera_corrupted","kernel panic: DOOR_FAIL","ERR: battery_anomaly"])}); const ci = setInterval(() => setCrash(p => { if (!p || p.pct >= 100) { clearInterval(ci); crR.current = false; return null; } return {...p, pct: p.pct + Math.floor(Math.random() * 18) + 5}; }), 350); setTimeout(() => { clearInterval(ci); setCrash(null); crR.current = false; }, 4500); }
     }, 1e3);
     return () => clearInterval(i);
   }, [scr, completeNight, die, spawnEvt, fire, doScare, sv]);
@@ -730,7 +717,7 @@ export default function App() {
           </div>
         )}
 
-        {math && <div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:80,padding:16,background:G.bg+"f0",backdropFilter:"blur(8px)",border:`2px solid ${G.green}40`,borderRadius:14,textAlign:"center",width:"90%",maxWidth:380}}><div style={{fontSize:32,fontWeight:900,color:G.green,marginBottom:8}}>{math.a} {math.op} {math.b} = ?</div><input value={math.input} onChange={e => setMath(p => p ? {...p, input: e.target.value.replace(/[^0-9\-]/g, "")} : null)} onKeyDown={e => { if (e.key === "Enter" && math) { if (parseInt(math.input) === math.ans) { fire("\u2713 +5%", "success"); baR.current = Math.min(getUpg().maxBatt, baR.current + 5); setBatt(baR.current); setMath(null); } else { setMath(null); doScare({t:"emoji",e:"\uD83D\uDCCF",msg:"WRONG",c:"#0f0",sc:5}); baR.current = Math.max(0, baR.current - 18); setBatt(baR.current); } } }} style={{background:"#001a08",border:`1px solid ${G.green}30`,borderRadius:8,padding:"8px 12px",fontSize:24,fontWeight:700,color:G.green,width:110,textAlign:"center",outline:"none"}} autoFocus inputMode="numeric"/><div style={{marginTop:4,fontSize:18,fontWeight:800,color:math.timer <= 3 ? G.red : G.green+"60"}}>{math.timer}s</div></div>}
+        {math && <div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:80,padding:16,background:G.bg+"f0",backdropFilter:"blur(8px)",border:`2px solid ${G.green}40`,borderRadius:14,textAlign:"center",width:"90%",maxWidth:380}}><div style={{fontSize:32,fontWeight:900,color:G.green,marginBottom:8}}>{math.a} {math.op} {math.b} = ?</div><input value={math.input} onChange={e => setMath(p => p ? {...p, input: e.target.value.replace(/[^0-9\-]/g, "")} : null)} onKeyDown={e => { if (e.key === "Enter" && math && math.input.length > 0) { if (parseInt(math.input) === math.ans) { fire("\u2713 +5%", "success"); baR.current = Math.min(getUpg().maxBatt, baR.current + 5); setBatt(baR.current); setMath(null); } else { setMath(null); doScare({t:"emoji",e:"\uD83D\uDCCF",msg:"WRONG",c:"#0f0",sc:5}); baR.current = Math.max(0, baR.current - 18); setBatt(baR.current); } } }} style={{background:"#001a08",border:`1px solid ${G.green}30`,borderRadius:8,padding:"8px 12px",fontSize:24,fontWeight:700,color:G.green,width:110,textAlign:"center",outline:"none"}} autoFocus inputMode="numeric"/><div style={{marginTop:4,fontSize:18,fontWeight:800,color:math.timer <= 3 ? G.red : G.green+"60"}}>{math.timer}s</div></div>}
         {chal && chal.type !== "freeze" && <div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:80,padding:14,textAlign:"center",borderRadius:14,background:G.bg+"f0",backdropFilter:"blur(8px)",border:`2px solid ${{wind:G.purple,click:G.red,type:"#f59e0b",wire:G.green,memory:"#ec4899",reboot:"#3b82f6"}[chal.type] || "#fff"}40`,width:"90%",maxWidth:380}}>
           {chal.type === "wind" && <><div style={{width:"100%",height:12,background:G.bg,borderRadius:6,overflow:"hidden",marginBottom:6}}><div style={{width:Math.min(100,chal.progress/(chal.target||20)*100)+"%",height:"100%",background:`linear-gradient(90deg,${G.purple}60,${G.purple})`,borderRadius:6}}/></div><div onClick={() => setChal(p => { if (!p) return null; if (p.progress+1 >= p.target) { fire("\uD83C\uDFB5 +5%","success"); baR.current = Math.min(getUpg().maxBatt,baR.current+5); setBatt(baR.current); return null; } return {...p,progress:p.progress+1}; })} style={{padding:"10px 24px",background:G.purple,color:"#fff",borderRadius:10,fontSize:14,fontWeight:800,cursor:"pointer",userSelect:"none",display:"inline-block"}}>{"\uD83C\uDFB5"} WIND</div></>}
           {chal.type === "click" && <><div style={{fontSize:32,fontWeight:900,color:chal.count >= chal.target ? G.green : G.red,marginBottom:4}}>{chal.count}/{chal.target}</div><div onClick={() => setChal(p => { if (!p) return null; if (p.count+1 >= p.target) { fire("\u26A1 +5%","success"); baR.current = Math.min(getUpg().maxBatt,baR.current+5); setBatt(baR.current); return null; } return {...p,count:p.count+1}; })} style={{padding:"10px 28px",background:G.red,color:"#fff",borderRadius:10,fontSize:14,fontWeight:800,cursor:"pointer",userSelect:"none",display:"inline-block"}}>{"\u26A1"} CLICK</div></>}
